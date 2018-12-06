@@ -10,7 +10,7 @@ def main():
 	with open(filename, "r") as csvfilein:
 		filereader = csv.reader(csvfilein, delimiter=',')
 
-		with open('out.csv', "w") as csvfileout:
+		with open('out3.csv', "w") as csvfileout:
 			filewriter = csv.writer(csvfileout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
 
