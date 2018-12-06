@@ -10,7 +10,7 @@ def main():
 	with open(filename, "r") as csvfilein:
 		filereader = csv.reader(csvfilein, delimiter=',')
 
-		with open('out3.csv', "w") as csvfileout:
+		with open('out4.csv', "w") as csvfileout:
 			filewriter = csv.writer(csvfileout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
 			filewriter.writerow(["ID", 'title', 'text', 'label'])
@@ -19,7 +19,7 @@ def main():
 
 			for line in filereader:
 
-				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL"):
+				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL") and (line[1] != "" and line[2] != ""):
 					
 
 					# line[2].decode('UTF-8')
