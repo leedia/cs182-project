@@ -10,7 +10,7 @@ def main():
 	with open(filename, "r") as csvfilein:
 		filereader = csv.reader(csvfilein, delimiter=',')
 
-		with open('out4.csv', "w") as csvfileout:
+		with open('out6.csv', "w") as csvfileout:
 			filewriter = csv.writer(csvfileout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
 			filewriter.writerow(["ID", 'title', 'text', 'label'])
@@ -19,8 +19,11 @@ def main():
 
 			for line in filereader:
 
-				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL") and (line[1] != "" and line[2] != "") and (len(line[2]) > 2):
+
+				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL") and (line[1] != "" and line[2] != ""):
 					
+
+
 
 					# line[2].decode('UTF-8')
 
@@ -33,10 +36,17 @@ def main():
 					title_string = title_string.lower()
 					text_string = text_string.lower()
 
-					text_string = re.sub('([.,!?()])', r' \1 ', text_string)
-					text_string = re.sub('\s{2,}', ' ', text_string)
+					text_string = text_string.strip()
 
-					filewriter.writerow([line[0], title_string, text_string, line[3]])
+					if (len(text_string) > 2):
+
+						text_string = re.sub('([.,!?()])', r' \1 ', text_string)
+						text_string = re.sub('\s{2,}', ' ', text_string)
+
+						filewriter.writerow([line[0], title_string, text_string, line[3]])
+
+					else:
+						print "Rejected a line due to length"
 
 
 					# line_string = line_string.replace("\u2018", "'").replace("\u2019", "'")
