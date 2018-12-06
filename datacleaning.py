@@ -5,7 +5,7 @@ import re
 
 def main():
 
-	filename = "test.csv"
+	filename = "fake_or_real_news.csv"
 
 	with open(filename, "r") as csvfilein:
 		filereader = csv.reader(csvfilein, delimiter=',')
@@ -18,7 +18,7 @@ def main():
 
 			for line in filereader:
 
-				if linenum != 0 and is_number(line[0]):
+				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL"):
 					
 
 					# line[2].decode('UTF-8')
