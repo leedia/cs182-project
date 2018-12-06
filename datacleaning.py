@@ -13,6 +13,7 @@ def main():
 		with open('out3.csv', "w") as csvfileout:
 			filewriter = csv.writer(csvfileout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
+			filewriter.writerow(["ID", 'title', 'text', 'label'])
 
 			linenum = 0
 
