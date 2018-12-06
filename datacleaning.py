@@ -19,7 +19,7 @@ def main():
 
 			for line in filereader:
 
-				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL") and (line[1] != "" and line[2] != ""):
+				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL") and (line[1] != "" and line[2] != "") and (len(line[2]) > 2):
 					
 
 					# line[2].decode('UTF-8')
