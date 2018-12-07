@@ -1,16 +1,19 @@
 from unidecode import unidecode
 import csv
 import re
-
+import sys
 
 def main():
 
 	filename = "fake_or_real_news.csv"
 
+	print sys.argv[0];
+	print sys.argv;
+
 	with open(filename, "r") as csvfilein:
 		filereader = csv.reader(csvfilein, delimiter=',')
 
-		with open('out6.csv', "w") as csvfileout:
+		with open(sys.argv[1], "w") as csvfileout:
 			filewriter = csv.writer(csvfileout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
 			filewriter.writerow(["ID", 'title', 'text', 'label'])
@@ -33,15 +36,17 @@ def main():
 					title_string = line[1].decode('UTF-8')
 					title_string = unidecode(title_string)
 
-					title_string = title_string.lower()
-					text_string = text_string.lower()
+					if(sys.argv[2] == "true"):
+						title_string = title_string.lower()
+						text_string = text_string.lower()
 
 					text_string = text_string.strip()
 
 					if (len(text_string) > 2):
 
-						text_string = re.sub('([.,!?()])', r' \1 ', text_string)
-						text_string = re.sub('\s{2,}', ' ', text_string)
+						if(sys.argv[3] == "true"):
+							text_string = re.sub('([.,!?()])', r' \1 ', text_string)
+							text_string = re.sub('\s{2,}', ' ', text_string)
 
 						filewriter.writerow([line[0], title_string, text_string, line[3]])
 
@@ -84,4 +89,4 @@ def is_number(s):
 
 
 if __name__== "__main__":
-  main()
+	main()
