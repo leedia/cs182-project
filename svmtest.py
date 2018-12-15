@@ -1,17 +1,9 @@
 import pandas as pd
 import numpy as np
 from collections import defaultdict 
+from collections import Counter
 from math import log
 import time
-
-def split(text):
-    df = pd.read_csv(text, quotechar='|')
-    df['split'] = np.random.randn(df.shape[0], 1)
-    split = np.random.rand(len(df)) <= 0.8
-    train = df[split]
-    test = df[~split]
-    train.to_csv('outtrain.csv', index=False)
-    test.to_csv('outtest.csv', index=False)
 
 def label_to_num(label):
     if label == 'REAL':
@@ -19,7 +11,7 @@ def label_to_num(label):
     else:
         return 1
 
-class NaiveBayesClassifier:
+class SVMClassifier:
 
     def train(self, trainingset, col):
         # init vars 
@@ -32,11 +24,23 @@ class NaiveBayesClassifier:
         labels = df['label']
         len_data = len(articles)
 
+        # parse common
+        temp = defaultdict(int)
+        arts = []
+        labs = []
+        for article in articles:
+            for word in article.split():
+                temp[word] += 1
+        tempc = Counter(temp)
+        for k,v in tempc.most_common(100):
+            arts.append(k)
+            labs.append(labels[articles.index(k)])
+
         # fill dict and classified
         marker = 0
         for i in range(len_data):
-            article = articles[i]
-            label = label_to_num(labels[i])
+            article = arts[i]
+            label = label_to_num(labs[i])
             for word in article.split():
                 if word not in self.dict:
                     self.dict[word] = marker
@@ -46,8 +50,8 @@ class NaiveBayesClassifier:
         # fill counts
         self.counts = [[0] * len(self.dict) for _ in range(2)]
         for i in range(len_data):
-            label = label_to_num(labels[i])
-            article = articles[i]
+            label = label_to_num(labs[i])
+            article = arts[i]
             for word in article.split():
                 self.counts[label][self.dict[word]] += 1
 
