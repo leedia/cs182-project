@@ -1,112 +1,119 @@
-# Markov 
+# Markov Text Generation
 
 import numpy as np
 import pandas as pd 
 from collections import defaultdict
 import random
+import time
 
-def get_pairs(text):
-    for i in range(len(text)-1):
-        yield (text[i], text[i+1])
+# lazily return key, value for k-gram dictionary
+def get_k_pairs(text, k):
+    for i in range(len(text)-k-1):
+        yield (text[i:i+k], text[i+k])
 
 if __name__ == '__main__':
+    # read and sort data
     df = pd.read_csv('out6.csv', quotechar='|')
     fake = df[df.label == 'FAKE']
     real = df[df.label == 'REAL']
     fakes = fake['text']
     reals = real['text']
+
+    ks = [1, 2, 3, 4, 5, 10, 100] # iterate k's for k-grams
     
-    pairs = []
-    fd = defaultdict(list)
-    for f in fakes:
-        pairs = get_pairs(f.split())
-        for w1, w2 in pairs:
-            fd[w1].append(w2)
+    for k in ks: 
+        t0 = time.time() # track time
+        pairs = []
+        fd = defaultdict(list)
+        for f in fakes:
+            pairs = get_k_pairs(f.split(), k)
+            for w1, w2 in pairs:
+                fd[' '.join(w1)].append(w2)
 
-    rd = defaultdict(list)
-    for r in reals:
-        pairs = get_pairs(r.split())
-        for w1, w2 in pairs:
-            rd[w1].append(w2)
+        rd = defaultdict(list)
+        for r in reals:
+            pairs = get_k_pairs(r.split(), k)
+            for w1, w2 in pairs:
+                rd[' '.join(w1)].append(w2)
 
-    # start with common word, same number of words
-    #w0 = "trump" 
+        # start with random word
+        samples = 10 # test 10 x
+        fakeacc = [] # track fake accuracy over samples
+        realacc = [] # track real accuracy over samples
+        rand_restarts = 0 # how many times a random key had to be generated
 
-    # start with random word
-    min_words = 300
-    farr = ""
-    rarr = ""
-    samples = 10
+        for _ in range(samples): 
+            num_words = 300-k+1 # each article is approx 300 words
+            farr = "" # fake news generation
+            rarr = "" # real news generation
+            # first randomly chosen k-grams
+            fw0 = random.choice(fd.keys())
+            rw0 = random.choice(rd.keys())
 
-    for _ in range(samples): 
-        fw0 = random.choice(fd.keys())
-        rw0 = random.choice(rd.keys())
+            # fake and real generations as list representation
+            fchain = fw0.split()
+            rchain = rw0.split()
 
-        fchain = [fw0]
-        rchain = [rw0]
+            while num_words > 0:
+                try:
+                    fchain.append(random.choice(fd[' '.join(fchain[-k:])]))
+                    rchain.append(random.choice(rd[' '.join(rchain[-k:])]))
+                    num_words -= 1
+                except: # case of k-gram input at very end of article, where there's no value in the dict
+                    fchain.append(random.choice(fd.keys()))
+                    rchain.append(random.choice(rd.keys()))
+                    num_words -= k
+                    rand_restarts += 1
 
-        for i in range(min_words-1):
-            fchain.append(random.choice(fd[fchain[-1]]))
-            rchain.append(random.choice(rd[rchain[-1]]))
+            farr = ' '.join(fchain)
+            rarr = ' '.join(rchain)
 
-        while fchain[-1] != '.':
-            fchain.append(random.choice(fd[fchain[-1]]))
+            # calculate accuracy difference for fake news generation
+            fprop = defaultdict(float) # build dict to store corpus acc
+            for article in fakes:
+                for word in article:
+                    fprop[word] += 1
+            norm = sum(fprop.itervalues()) # normalize
+            for key, v in fprop.items():
+                fprop[key] = float(v)/norm
+            len_text = len(farr)
+            fsprop = defaultdict(float) # build dict to store generated acc
+            for word in farr.split():
+                fsprop[word] += 1
+            for key, v in fsprop.items(): # normalize
+                fsprop[key] = float(v)/len_text 
+            loss = 0 # calculate loss
+            for key, v in fsprop.items():
+                loss += (fprop[key]-v)**2 # use L2 loss
+            fakeacc.append(loss)
 
-        while rchain[-1] != '.':
-            rchain.append(random.choice(rd[rchain[-1]]))
+            # repeat calculations for real news generation
+            rprop = defaultdict(float)
+            for article in reals:
+                for word in article:
+                    rprop[word] += 1
+            norm = sum(rprop.itervalues())
+            for key, v in rprop.items():
+                rprop[key] = float(v)/norm
+            len_text = len(rarr)
+            rsprop = defaultdict(float)
+            for word in rarr.split():
+                rsprop[word] += 1
+            for key, v in rsprop.items():
+                rsprop[key] = float(v)/len_text
+            loss = 0
+            for key, v in rsprop.items():
+                loss += (rprop[key]-v)**2
+            realacc.append(loss)
 
-        farr += " " + ' '.join(fchain)
-        rarr += " " + ' '.join(rchain)
+        t1 = time.time()
 
-    print('Fake: ' + farr)
-    print('Real: ' + rarr)
-
-    # calculate difference 
-    fprop = defaultdict(float)
-    for article in fakes:
-        for word in article:
-            fprop[word] += 1
-    # normalize
-    norm = sum(fprop.itervalues())
-    for k, v in fprop.items():
-        fprop[k] = float(v)/norm
-
-    loss = 0
-    len_text = len(farr)
-    fsprop = defaultdict(float)
-    for word in farr[i]:
-        fsprop[word] += 1
-    #normalize
-    for k, v in fsprop.items():
-        fsprop[k] = float(v)/len_text
-
-    #calc
-    loss = 0
-    for k, v in fsprop.items():
-        loss += (fprop[k]-v)**2
-    print('Fake loss: ' + str(loss))
-
-    #repeat for real
-    rprop = defaultdict(float)
-    for article in reals:
-        for word in article:
-            rprop[word] += 1
-    # normalize
-    norm = sum(rprop.itervalues())
-    for k, v in rprop.items():
-        rprop[k] = float(v)/norm
-
-    loss = 0
-    len_text = len(rarr)
-    rsprop = defaultdict(float)
-    for word in rarr[i]:
-        rsprop[word] += 1
-    #normalize
-    for k, v in rsprop.items():
-        rsprop[k] = float(v)/len_text
-
-    #calc
-    loss = 0
-    for k, v in rsprop.items():
-        loss += (rprop[k]-v)**2
-    print('Real loss: ' + str(loss))
+        # print last output 
+        print('NEW ITERATION k: ' + str(k))
+        print("Code Duration: " + str(t1-t0) + " seconds")
+        print("Avg Num of Random Restarts: " + str(float(rand_restarts)/samples))
+        print('Fake Generated Text: ' + farr + '\n')
+        print('Real Generated Text: ' + rarr)
+        print('Fake Loss: ' + str(sum(fakeacc)/float(samples))) # avg accuracy
+        print('Real Loss: ' + str(sum(realacc)/float(samples)))
+        print('\n\n')
