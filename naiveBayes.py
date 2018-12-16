@@ -1,24 +1,32 @@
+# Naive Bayes Classifier
+# Test/Train Data Split Code
+
 import pandas as pd
 import numpy as np
 from collections import defaultdict 
 from math import log
+import time
 
+# split data into train and test sets
 def split(text):
     df = pd.read_csv(text, quotechar='|')
     df['split'] = np.random.randn(df.shape[0], 1)
     split = np.random.rand(len(df)) <= 0.8
     train = df[split]
     test = df[~split]
-    train.to_csv('train.csv', index=False)
-    test.to_csv('test.csv', index=False)
+    train.to_csv('outtrain.csv', index=False)
+    test.to_csv('outtest.csv', index=False)
 
+# switch fake and real labels to binary
 def label_to_num(label):
     if label == 'REAL':
         return 0
-    return 1
+    else:
+        return 1
 
 class NaiveBayesClassifier:
 
+    # use bag-of-words model to train dataset
     def train(self, trainingset, col):
         # init vars 
         self.dict = defaultdict(int)
@@ -31,11 +39,14 @@ class NaiveBayesClassifier:
         len_data = len(articles)
 
         # fill dict and classified
+        marker = 0
         for i in range(len_data):
             article = articles[i]
             label = label_to_num(labels[i])
             for word in article.split():
-                self.dict[word] += 1
+                if word not in self.dict:
+                    self.dict[word] = marker
+                    marker += 1
             self.classified[label] += 1
 
         # fill counts
@@ -46,8 +57,7 @@ class NaiveBayesClassifier:
             for word in article.split():
                 self.counts[label][self.dict[word]] += 1
 
-        #print(sorted(self.dict.items(), key=lambda(k,v): v))
-
+    # fit model based on data
     def fit(self, alpha=1):
         self.F = [[0] * len(self.dict) for _ in range(2)]
         for label in range(2):
@@ -58,6 +68,7 @@ class NaiveBayesClassifier:
                 else:
                     self.F[label][word] = -log(p)
 
+    # test on new dataset
     def test(self, testset, col):
         # read data
         df = pd.read_csv(testset)
@@ -65,6 +76,7 @@ class NaiveBayesClassifier:
         labels = df['label']
         len_data = len(articles)
 
+        # classify test data and track accuracy
         accurate, total = 0.,0.
         pred = []
         for i in range(len_data):
@@ -74,7 +86,7 @@ class NaiveBayesClassifier:
             for word in article.split():
                 if word in self.dict:
                     for j in range(2):
-                        test_labels[i] += self.F[i][self.dict[word]]
+                        test_labels[j] += self.F[j][self.dict[word]]
             p = test_labels.index(min(test_labels))
             pred.append(p)
             if p == label:
@@ -82,24 +94,39 @@ class NaiveBayesClassifier:
             total += 1
         return (pred, accurate/total)
 
+    # test list of alphas to fit an optimal value
     def improve_alpha(self, testset, col):
-        alpha, acc, prev_acc = 0., 0., -0.01
-        while prev_acc < acc and alpha <= 1:
-            alpha += 0.01
-            prev_acc = acc
-            self.fit(alpha=alpha)
-            acc = self.test(testset, col)[1]
-        return alpha
+        alphas = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 0.9, 1]
+        best_alpha = alphas[0]
+        best_acc = 0
+        for a in alphas:
+            self.fit(alpha=a)
+            acc = self.test(testset,col)[1]
+            if acc > best_acc:
+                best_alpha = a
+                best_acc = acc
+        return best_alpha, best_acc
 
 if __name__ == '__main__':
-    # split('splittest.csv')
+    #split('out6.csv') # split data into test and train sets
 
-    c = NaiveBayesClassifier()
-    print "Processing training set..."
-    c.train('train.csv', 'text')
-    print len(c.dict), "words in dictionary"
-    print "Fitting model..."
-    c.fit()
-    print "Accuracy on validation set:", c.test('test.csv', 'text')[1]
-    print "Good alpha:", c.improve_alpha('test.csv', 'text')
+    trainf = 'outtrain.csv'
+    testf = 'outtest.csv'
+    # trials are train, test pairs
+    trials = [('text','text'), ('title','title'), ('title','text'), ('text', 'train')]
     
+    for trial in trials:
+        train_data, test_data = trial
+        t0 = time.time() # track time
+        c = NaiveBayesClassifier() # create new classifier
+        c.train(trainf, train_data) # train
+        c.fit(alpha=0.1) # fit model
+        # output
+        print "TRIAL TRAIN", train_data, "TEST", test_data
+        print "Accuracy on validation set:", c.test(testf, test_data)[1] # test
+        t1 = time.time()
+        print "Code Duration:", t1-t0, "seconds"
+        alphatest = c.improve_alpha(testf, test_data) # check alpha values
+        print "Good alpha:", alphatest[0]
+        print "Improves accuracy to:", alphatest[1]
+        print "\n\n"
