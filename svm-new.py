@@ -4,6 +4,7 @@ import numpy as np
 from collections import defaultdict 
 from math import log
 from sklearn import svm
+import sys
 
 
 
@@ -18,10 +19,16 @@ def split(text):
     split = np.random.rand(len(df)) <= 0.8
     train = df[split]
     test = df[~split]
-    train.to_csv('train4.csv', index=False)
-    test.to_csv('test4.csv', index=False)
+    train.to_csv('train5.csv', index=False)
+    test.to_csv('test5.csv', index=False)
 
 class SVMClassifier:
+
+	def __init__(self):
+		if len(sys.argv) > 1:
+			self.shortDictLen = int(sys.argv[1])
+		else:
+			self.shortDictLen = -1
 
 	def train(self, trainingset, col):
 		# init vars 
@@ -43,9 +50,9 @@ class SVMClassifier:
 			article = articles[i]
 			label = label_to_num(labels[i])
 			for word in article.split():
-				print word
+				# print word
 				if word not in self.dict:
-					print "adding to dictionary"
+					# print "adding to dictionary"
 					self.dict[word] = total_wordcount
 					total_wordcount += 1
 					wordcounts[0].append(0)
@@ -56,15 +63,15 @@ class SVMClassifier:
 
 				article_wordcount = article_wordcount + 1.0
 
-			print "article_wordcount:", article_wordcount
+			# print "article_wordcount:", article_wordcount
 			for j in range(len(self.dict)):
 				if article_wordcount != 0:
 					wordcounts[label][j] = wordcounts[label][j] / article_wordcount
 				else:
 					wordcounts[label][j] = 0
 
-		for word in self.dict:
-			print word, wordcounts[0][self.dict[word]]
+		# for word in self.dict:
+		# 	print word, wordcounts[0][self.dict[word]], wordcounts[1][self.dict[word]]
 
 
 		wordcount_diff = [0] * len(wordcounts[0])
@@ -75,13 +82,14 @@ class SVMClassifier:
 		for word in self.dict:
 			ranked_words[word] = wordcount_diff[self.dict[word]]
 
-		# print ranked_words
-
 		self.sorted_words = sorted(ranked_words.iteritems(), key=lambda (k, v): (v, k), reverse = True)
 
-		self.sorted_words = self.sorted_words
+		# print self.sorted_words
 
-		print self.sorted_words
+		if self.shortDictLen != -1:
+			self.sorted_words = self.sorted_words[:self.shortDictLen]
+
+		# print self.sorted_words
 
 		self.shortDict = {}
 		wordcount = 0
@@ -93,9 +101,10 @@ class SVMClassifier:
 		# print self.shortDict
 
 		# fill counts
-		self.datapoints = [[0.0] * len(self.shortDict)] * len_data
-		print self.datapoints
-		print "len", len(self.datapoints), len(self.datapoints[0])
+		self.datapoints = [[0.0] * len(self.shortDict) for i in range(len_data)]
+		# self.datapoints = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+		# print self.datapoints
+		# print "len", len(self.datapoints), len(self.datapoints[0])
 
 
 		self.labelset = [0] * len_data
@@ -106,31 +115,34 @@ class SVMClassifier:
 
 			article_wordcount = 0
 
-			print "---"
-			print "i:", i
+			# print "---"
+			# print "i:", i
 
 			for word in article.split():
+
+				# print self.datapoints
 				
 				article_wordcount = article_wordcount + 1.0
 
 				if word in self.shortDict:
-					print self.datapoints[i][self.shortDict[word]]
-					self.datapoints[i][self.shortDict[word]] += 1.0
-					print word, "i:", i, "adding to datapoint count", self.datapoints[i][self.shortDict[word]]
+					# print self.datapoints[i][self.shortDict[word]]
+					# self.datapoints[i][self.shortDict[word]] += 1.0
+					self.datapoints[i][self.shortDict[word]] = self.datapoints[i][self.shortDict[word]] + 1.0
+					# print word, "i:", i, "adding to datapoint count", self.datapoints[i][self.shortDict[word]]
 
 			for word in self.shortDict:
 				if article_wordcount != 0:
-					print "before:\t", word, "\t", self.datapoints[i][self.shortDict[word]]
+					# print "before:\t", word, "\t", self.datapoints[i][self.shortDict[word]]
 					self.datapoints[i][self.shortDict[word]] = self.datapoints[i][self.shortDict[word]] / article_wordcount
-					print "after-:\t", word, "\t", self.datapoints[i][self.shortDict[word]]
-					print self.datapoints
+					# print "after-:\t", word, "\t", self.datapoints[i][self.shortDict[word]]
+					# print self.datapoints
 				else:
 					self.datapoints[i][self.shortDict[word]] = 0
 
 
-			print "datapoints:"
-			for word in self.shortDict:
-				print word, "\t", self.datapoints[0][self.shortDict[word]], "\t", self.datapoints[1][self.shortDict[word]]
+			# print "self.datapoints:"
+			# for word in self.shortDict:
+				# print word, "\t", self.datapoints[0][self.shortDict[word]], "\t", self.datapoints[1][self.shortDict[word]]
 
 
 
@@ -151,19 +163,24 @@ class SVMClassifier:
 		accurate, total = 0.,0.
 		pred = []
 		for i in range(len_data):
+			# print "i:", i
 			label = label_to_num(labels[i])
 			article = articles[i]
 			test_point = [0 for _ in range(len(self.shortDict))]
 			article_wordcount = 0
 			for word in article.split():
 				article_wordcount = article_wordcount + 1.0
+				# print "word:", word
 				if word in self.shortDict:
 					test_point[self.shortDict[word]] += 1.0
+				# print test_point
 			for word in self.shortDict:
 				if article_wordcount != 0:
 					test_point[self.shortDict[word]] = test_point[self.shortDict[word]] / article_wordcount
 				else:
 					test_point[self.shortDict[word]] = 0
+			# for word in self.shortDict:
+			# 	print word, test_point[self.shortDict[word]]
 			p = self.clf.predict([test_point])
 			pred.append(p)
 			if p == label:
@@ -179,13 +196,14 @@ if __name__ == '__main__':
 	starttime = datetime.datetime.now()
 	print "starttime:", starttime
 	print "Processing training set..."
-	c.train('tiny.csv', 'text')
+	c.train('train5.csv', 'text')
 	print len(c.dict), "words in dictionary"
+	print "but using", len(c.shortDict), "words"
 	print "timestamp:", datetime.datetime.now()
 	print "Fitting model..."
 	c.fit()
 	print "timestamp:", datetime.datetime.now()
-	print "Accuracy on validation set:", c.test('tinytext.csv', 'text')[1]
+	print "Accuracy on validation set:", c.test('test5.csv', 'text')[1]
 	print "endtime:", datetime.datetime.now()
 	duration = datetime.datetime.now() - starttime
 	print "duration in seconds:", duration.total_seconds()
