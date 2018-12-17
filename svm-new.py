@@ -1,3 +1,6 @@
+## SVM Classification
+## Test/Train code
+
 import pandas as pd
 import datetime
 import numpy as np
@@ -25,8 +28,9 @@ def split(text):
 class SVMClassifier:
 
 	def __init__(self):
-		if len(sys.argv) > 1:
-			self.shortDictLen = int(sys.argv[1])
+		# if there is a max dictionary size specified in the arguments, set the size
+		if len(sys.argv) == 3:
+			self.shortDictLen = int(sys.argv[2])
 		else:
 			self.shortDictLen = -1
 
@@ -41,112 +45,76 @@ class SVMClassifier:
 		labels = df['label']
 		len_data = len(articles)
 
-		# fill dict and classified
+		# fill initial dictionary
 		total_wordcount = 0
-		label_wordcounts =[0, 0]
 		wordcounts =[[], []]
 		for i in range(len_data):
-			article_wordcount = 0
 			article = articles[i]
 			label = label_to_num(labels[i])
-			for word in article.split():
-				# print word
+			
+			#split the string of words of the article in to a list of words
+			wordlist = article.split()
+
+			for word in wordlist:
 				if word not in self.dict:
-					# print "adding to dictionary"
+					# adding new word to dictionary
 					self.dict[word] = total_wordcount
 					total_wordcount += 1
 					wordcounts[0].append(0)
 					wordcounts[1].append(0)
 				
-				label_wordcounts[label] = label_wordcounts[label] + 1.0
-				wordcounts[label][self.dict[word]] = wordcounts[label][self.dict[word]] + 1.0
+				# add to the wordcount 1/(num of words in article) to add a frequency based value
+				wordcounts[label][self.dict[word]] += 1.0/len(wordlist)
 
-				article_wordcount = article_wordcount + 1.0
-
-			# print "article_wordcount:", article_wordcount
-			for j in range(len(self.dict)):
-				if article_wordcount != 0:
-					wordcounts[label][j] = wordcounts[label][j] / article_wordcount
-				else:
-					wordcounts[label][j] = 0
-
-		# for word in self.dict:
-		# 	print word, wordcounts[0][self.dict[word]], wordcounts[1][self.dict[word]]
-
-
-		wordcount_diff = [0] * len(wordcounts[0])
-		for i in range(len(wordcounts[0])):
-			wordcount_diff[i] = abs(wordcounts[1][i]-wordcounts[0][i])
-
-		ranked_words = {}
-		for word in self.dict:
-			ranked_words[word] = wordcount_diff[self.dict[word]]
-
-		self.sorted_words = sorted(ranked_words.iteritems(), key=lambda (k, v): (v, k), reverse = True)
-
-		# print self.sorted_words
-
+		# only save most different words b/w labels in dictionary
 		if self.shortDictLen != -1:
+			# initialize difference list
+			wordcount_diff = [0] * len(wordcounts[0])
+
+			# calculate the difference in frequencies between each word
+			for i in range(len(wordcounts[0])):
+				wordcount_diff[i] = abs(wordcounts[1][i]-wordcounts[0][i])
+
+			# create temp dictionary to sort them
+			ranked_words = {}
+			for word in self.dict:
+				ranked_words[word] = wordcount_diff[self.dict[word]]
+
+			# sort the temp dictionary, those with the greatest difference appear first
+			self.sorted_words = sorted(ranked_words.iteritems(), key=lambda (k, v): (v, k), reverse = True)
+			
+			# get the top XX number of words based on the maxdiciontarysize
 			self.sorted_words = self.sorted_words[:self.shortDictLen]
 
-		# print self.sorted_words
+			# repopulate 'short' dictionary used by the rest of the code with moost 'different' words
+			self.shortDict = {}
+			wordcount = 0
+			for k,v in self.sorted_words:
+				self.shortDict[k] = wordcount
+				wordcount = wordcount + 1
 
-		self.shortDict = {}
-		wordcount = 0
-		for k,v in self.sorted_words:
-			self.shortDict[k] = wordcount
-			wordcount = wordcount + 1
-
-
-		# print self.shortDict
+		# save all words
+		else:
+			self.shortDict = self.dict
 
 		# fill counts
 		self.datapoints = [[0.0] * len(self.shortDict) for i in range(len_data)]
-		# self.datapoints = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
-		# print self.datapoints
-		# print "len", len(self.datapoints), len(self.datapoints[0])
-
-
 		self.labelset = [0] * len_data
+
+		# for article in article list
 		for i in range(len_data):
 			label = label_to_num(labels[i])
 			self.labelset[i] = label
 			article = articles[i]
 
-			article_wordcount = 0
+			# split the string of the article into a list of words
+			wordlist = article.split()
 
-			# print "---"
-			# print "i:", i
-
-			for word in article.split():
-
-				# print self.datapoints
-				
-				article_wordcount = article_wordcount + 1.0
-
+			for word in wordlist:
+				# only count words that are in the dictionary
 				if word in self.shortDict:
-					# print self.datapoints[i][self.shortDict[word]]
-					# self.datapoints[i][self.shortDict[word]] += 1.0
-					self.datapoints[i][self.shortDict[word]] = self.datapoints[i][self.shortDict[word]] + 1.0
-					# print word, "i:", i, "adding to datapoint count", self.datapoints[i][self.shortDict[word]]
-
-			for word in self.shortDict:
-				if article_wordcount != 0:
-					# print "before:\t", word, "\t", self.datapoints[i][self.shortDict[word]]
-					self.datapoints[i][self.shortDict[word]] = self.datapoints[i][self.shortDict[word]] / article_wordcount
-					# print "after-:\t", word, "\t", self.datapoints[i][self.shortDict[word]]
-					# print self.datapoints
-				else:
-					self.datapoints[i][self.shortDict[word]] = 0
-
-
-			# print "self.datapoints:"
-			# for word in self.shortDict:
-				# print word, "\t", self.datapoints[0][self.shortDict[word]], "\t", self.datapoints[1][self.shortDict[word]]
-
-
-
-
+					# add the frequency to the datapoint
+					self.datapoints[i][self.shortDict[word]] += (1.0 / len(wordlist))
 		
 
 	def fit(self):
@@ -160,29 +128,29 @@ class SVMClassifier:
 		labels = df['label']
 		len_data = len(articles)
 
+		# initialize variables
 		accurate, total = 0.,0.
 		pred = []
+
+		# for each article in article list
 		for i in range(len_data):
-			# print "i:", i
 			label = label_to_num(labels[i])
 			article = articles[i]
 			test_point = [0 for _ in range(len(self.shortDict))]
-			article_wordcount = 0
-			for word in article.split():
-				article_wordcount = article_wordcount + 1.0
-				# print "word:", word
+
+			# split article string in to list of words
+			wordlist = article.split()
+
+			for word in wordlist:
+				# if word is in dictionary, add frequency to testpoint total for that word
 				if word in self.shortDict:
-					test_point[self.shortDict[word]] += 1.0
-				# print test_point
-			for word in self.shortDict:
-				if article_wordcount != 0:
-					test_point[self.shortDict[word]] = test_point[self.shortDict[word]] / article_wordcount
-				else:
-					test_point[self.shortDict[word]] = 0
-			# for word in self.shortDict:
-			# 	print word, test_point[self.shortDict[word]]
+					test_point[self.shortDict[word]] += (1.0/len(wordlist))
+
+			# get prediction from SVM model
 			p = self.clf.predict([test_point])
+			# add to prediction list
 			pred.append(p)
+			# check if accurate
 			if p == label:
 				accurate += 1
 			total += 1
@@ -190,7 +158,11 @@ class SVMClassifier:
 
 
 if __name__ == '__main__':
-	split('lowerandwords.csv')
+
+	if len(sys.argv) != 3 and len(sys.argv) != 2:
+		print "Usage: svm-new.py inputdata.csv [Max dictionary size]"
+		sys.exit(0)
+	split(sys.argv[1])
 
 	c = SVMClassifier()
 	starttime = datetime.datetime.now()
