@@ -1,3 +1,5 @@
+## Data Cleaning Code
+
 from unidecode import unidecode
 import csv
 import re
@@ -5,80 +7,66 @@ import sys
 
 def main():
 
-	filename = "fake_or_real_news.csv"
+	# check arguments for correct usage
+	if len(sys.argv) != 4 and len(sys.argv) != 5:
+		print "Usage: datacleaning.py inputfile.csv outputfile.csv True/False on lowercase [number of rows to clean]"
+		sys.exit(0)
 
-	print sys.argv[0];
-	print sys.argv;
+	# open input file
+	csvfilein = open(sys.argv[1], "r")
+	filereader = csv.reader(csvfilein, delimiter=',')
+	# open output file
+	csvfileout = open(sys.argv[2], "w")
+	filewriter = csv.writer(csvfileout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
-	with open(filename, "r") as csvfilein:
-		filereader = csv.reader(csvfilein, delimiter=',')
-
-		with open(sys.argv[1], "w") as csvfileout:
-			filewriter = csv.writer(csvfileout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-
-			filewriter.writerow(["ID", 'title', 'text', 'label'])
-
-			linenum = 0
-
-			for line in filereader:
+	# add label row
+	filewriter.writerow(["ID", 'title', 'text', 'label'])
 
 
-				if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL") and (line[1] != "" and line[2] != ""):
-					
+	linenum = 0
+	for line in filereader:
+		# if line looks good, begin decoding it; good = ID is in correct place, label is there, and title and text are not blank
+		if linenum != 0 and is_number(line[0]) and (line[3] == "FAKE" or line[3] == "REAL") and (line[1] != "" and line[2] != ""):
+			
+			#get title and text and decode them in unicode-8
+			text_string = line[2].decode('UTF-8')
+			text_string = unidecode(text_string)
+			title_string = line[1].decode('UTF-8')
+			title_string = unidecode(title_string)
 
+			# if requested, lowercase everything
+			if(sys.argv[3] == "true" or sys.argv[3] == "True"):
+				title_string = title_string.lower()
+				text_string = text_string.lower()
 
+			# strip to get rid of extra while space on the edges
+			text_string = text_string.strip()
 
-					# line[2].decode('UTF-8')
+			# if the string is the right length
+			if (len(text_string) > 2):
 
-					text_string = line[2].decode('UTF-8')
-					text_string = unidecode(text_string)
+				# if requested, remove punctuation
+				if(sys.argv[3] == "true" or sys.argv[3] == "True"):
+					text_string = re.sub('([.,!?()])', r' \1 ', text_string)
+					text_string = re.sub('\s{2,}', ' ', text_string)
 
-					title_string = line[1].decode('UTF-8')
-					title_string = unidecode(title_string)
+				# write data out to output file
+				filewriter.writerow([line[0], title_string, text_string, line[3]])
 
-					if(sys.argv[2] == "true"):
-						title_string = title_string.lower()
-						text_string = text_string.lower()
+			# the string was not the expected length (due to a messy csv) so ignore this line
+			else:
+				pass
+				# print "Rejected a line due to length"
 
-					text_string = text_string.strip()
+		# if a smaller dataset is requested, exit after the line number max
+		if len(sys.argv) == 5  and linenum > int(sys.argv[4]):
+			break
 
-					if (len(text_string) > 2):
+		linenum = linenum + 1
 
-						if(sys.argv[3] == "true"):
-							text_string = re.sub('([.,!?()])', r' \1 ', text_string)
-							text_string = re.sub('\s{2,}', ' ', text_string)
-
-						filewriter.writerow([line[0], title_string, text_string, line[3]])
-
-					else:
-						print "Rejected a line due to length"
-
-
-					# line_string = line_string.replace("\u2018", "'").replace("\u2019", "'")
-
-					
-
-
-					#line_list = line_string.split(",")
-
-					#print line_list
-
-					#if(is_number(line_list[0])):
-					#	print line_list[2]
-
-					# print line_list
-
-					# if linenum > 5:
-					# 	break
-
-				linenum = linenum + 1
-					#alphanumeric characters only?
-					#punctuation a separate word
-					#case insesistive
-					#clean spaces/returns/etc
-
-
-
+	# close output files
+	csvfilein.close()
+	csvfileout.close()
 
 def is_number(s):
     try:
