@@ -113,7 +113,7 @@ if __name__ == '__main__':
     trainf = 'outtrain.csv'
     testf = 'outtest.csv'
     # trials are train, test pairs
-    trials = [('text','text'), ('title','title'), ('title','text'), ('text', 'train')]
+    trials = [('text','text'), ('title','title'), ('title','text'), ('text', 'title')]
     
     for trial in trials:
         train_data, test_data = trial
