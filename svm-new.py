@@ -22,8 +22,8 @@ def split(text):
     split = np.random.rand(len(df)) <= 0.8
     train = df[split]
     test = df[~split]
-    train.to_csv('train5.csv', index=False)
-    test.to_csv('test5.csv', index=False)
+    train.to_csv('train-new.csv', index=False)
+    test.to_csv('test-new.csv', index=False)
 
 class SVMClassifier:
 
@@ -168,14 +168,14 @@ if __name__ == '__main__':
 	starttime = datetime.datetime.now()
 	print "starttime:", starttime
 	print "Processing training set..."
-	c.train('train5.csv', 'text')
+	c.train('train-new.csv', 'text')
 	print len(c.dict), "words in dictionary"
 	print "but using", len(c.shortDict), "words"
 	print "timestamp:", datetime.datetime.now()
 	print "Fitting model..."
 	c.fit()
 	print "timestamp:", datetime.datetime.now()
-	print "Accuracy on validation set:", c.test('test5.csv', 'text')[1]
+	print "Accuracy on validation set:", c.test('test-new.csv', 'text')[1]
 	print "endtime:", datetime.datetime.now()
 	duration = datetime.datetime.now() - starttime
 	print "duration in seconds:", duration.total_seconds()

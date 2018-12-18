@@ -14,8 +14,8 @@ def split(text):
     split = np.random.rand(len(df)) <= 0.8
     train = df[split]
     test = df[~split]
-    train.to_csv('train.csv', index=False)
-    test.to_csv('test.csv', index=False)
+    train.to_csv('train-new.csv', index=False)
+    test.to_csv('test-new.csv', index=False)
 
 # switch fake and real labels to binary
 def label_to_num(label):
@@ -108,10 +108,10 @@ class NaiveBayesClassifier:
         return best_alpha, best_acc
 
 if __name__ == '__main__':
-    # split('output.csv') # split data into test and train sets
+    split('output.csv') # split data into test and train sets
 
-    trainf = 'train.csv'
-    testf = 'test.csv'
+    trainf = 'train-new.csv'
+    testf = 'test-new.csv'
     # trials are train, test pairs
     trials = [('title','title'),('text','text'), ('title','title'), ('title','text'), ('text', 'title')]
     
