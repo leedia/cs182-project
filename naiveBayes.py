@@ -6,6 +6,7 @@ import numpy as np
 from collections import defaultdict 
 from math import log
 import time
+import sys
 
 # split data into train and test sets
 def split(text):
@@ -108,7 +109,12 @@ class NaiveBayesClassifier:
         return best_alpha, best_acc
 
 if __name__ == '__main__':
-    split('output.csv') # split data into test and train sets
+
+    if len(sys.argv) != 2:
+        print "Usage: naiveBayes.py datafile.csv"
+        sys.exit(0)
+
+    split(sys.argv[1]) # split data into test and train sets
 
     trainf = 'train-new.csv'
     testf = 'test-new.csv'
