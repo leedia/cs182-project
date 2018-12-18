@@ -13,13 +13,13 @@ def get_k_pairs(text, k):
 
 if __name__ == '__main__':
     # read and sort data
-    df = pd.read_csv('out6.csv', quotechar='|')
+    df = pd.read_csv('output.csv', quotechar='|')
     fake = df[df.label == 'FAKE']
     real = df[df.label == 'REAL']
     fakes = fake['text']
     reals = real['text']
 
-    ks = [1, 2, 3, 4, 5, 10, 100] # iterate k's for k-grams
+    ks = [1, 2, 3, 10, 100] # iterate k's for k-grams
     
     for k in ks: 
         t0 = time.time() # track time
